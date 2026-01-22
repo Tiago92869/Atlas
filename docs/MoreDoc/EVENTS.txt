@@ -1,0 +1,86 @@
+ATLAS — EVENTS (Kafka Contract)
+
+1) Topic(s)
+- atlas.domain-events.v1
+
+(One topic to start. Later split if needed.)
+
+2) General rules
+- All events use a versioned envelope.
+- event_id is unique and must be used for deduplication in consumers.
+- Consumers must be idempotent (safe to reprocess/replay).
+- Include trace_id when available for correlation across logs.
+
+3) Event envelope (v1)
+Fields:
+- event_id: UUID
+- event_type: string (e.g., ItemCreated)
+- version: integer (1)
+- occurred_at: ISO-8601 timestamp
+- actor_user_id: UUID or null (system events)
+- trace_id: string or null
+- entity:
+  - type: string (Item, Collection, Membership, Job)
+  - id: UUID
+  - collection_id: UUID (optional for some event types)
+- data: object (event-specific payload)
+
+Example JSON:
+{
+  "event_id": "uuid",
+  "event_type": "ItemCreated",
+  "version": 1,
+  "occurred_at": "2026-01-22T10:00:00Z",
+  "actor_user_id": "uuid-or-null",
+  "trace_id": "request-id-or-trace-id",
+  "entity": {
+    "type": "Item",
+    "id": "item-uuid",
+    "collection_id": "collection-uuid"
+  },
+  "data": {
+    "item_id": "item-uuid",
+    "collection_id": "collection-uuid",
+    "changed_fields": ["title", "content"],
+    "source_url": "https://example.com"
+  }
+}
+
+4) Event types (v1)
+
+COLLECTION EVENTS
+- CollectionCreated
+- CollectionUpdated
+- CollectionDeleted
+
+MEMBERSHIP EVENTS
+- MembershipAdded
+- MembershipRoleChanged
+- MembershipRemoved
+
+ITEM EVENTS
+- ItemCreated
+- ItemUpdated
+- ItemDeleted
+
+JOB EVENTS (optional, later)
+- JobCreated
+- JobUpdated (optional)
+
+5) Consumer requirements
+A) Audit consumer
+- Consumes all events.
+- Inserts into audit_events.
+- Deduplicates using event_id unique constraint.
+- On duplicate event_id: ignore safely.
+
+B) Indexer consumer
+- Consumes ItemCreated/ItemUpdated/ItemDeleted.
+- Fetches item state from Postgres (truth) before indexing.
+- Upserts/deletes in Elasticsearch.
+- Deduplicates by event_id.
+
+6) Versioning strategy
+- Start with version=1.
+- Add fields in a backward-compatible way whenever possible.
+- If event meaning changes significantly, bump version or introduce a new event_type.

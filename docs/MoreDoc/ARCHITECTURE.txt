@@ -1,0 +1,97 @@
+ATLAS — ARCHITECTURE
+
+1) Purpose
+Atlas is an event-driven knowledge platform designed to demonstrate production-ready backend engineering:
+- FastAPI REST API with JWT auth + RBAC
+- Postgres as source of truth
+- Kafka for domain events
+- Elasticsearch as search read-model (eventually consistent)
+- Separate consumers for indexing and auditing
+- Background worker for async jobs (enrichment, reindex, etc.)
+- Cloud-native path: Docker Compose → local k8s → GCP (GKE Autopilot + Cloud SQL)
+
+2) Components (responsibilities)
+
+A) API Service (FastAPI)
+- Handles all HTTP requests
+- Performs validation and error formatting
+- Auth (register/login/me) via JWT
+- RBAC enforcement per collection (owner/editor/viewer)
+- Writes authoritative data to Postgres
+- Publishes domain events to Kafka after successful writes
+- Exposes OpenAPI documentation
+
+B) Postgres (Source of Truth)
+- Stores users, collections, memberships, items, tags
+- Stores jobs and job status
+- Stores audit_events (immutable)
+- Provides the “truth” for item details and permissions
+
+C) Kafka (Domain Event Bus)
+- Receives domain events from the API
+- Provides decoupling and replay capability
+- Enables consumers to react independently:
+  - indexer updates Elasticsearch
+  - audit stores audit trail
+  - worker can optionally react to events
+
+D) Indexer Service (Kafka → Elasticsearch)
+- Consumes item-related events
+- Fetches full item state from Postgres (truth)
+- Transforms into Elasticsearch document
+- Upserts into ES index (delete/soft-delete on item delete)
+
+E) Elasticsearch (Search Read-Model)
+- Stores documents for Items only
+- Powers full-text search and filtering
+- Is eventually consistent with Postgres (short lag expected)
+
+F) Audit Service (Kafka → Postgres)
+- Consumes all domain events
+- Writes immutable audit entries to audit_events table
+- Deduplicates by event_id
+- Enables audit queries by entity/user/time window
+
+G) Worker Service (Background Jobs)
+- Executes asynchronous tasks
+- Stores job state in Postgres (QUEUED/RUNNING/SUCCEEDED/FAILED)
+- Retries with backoff
+- Must be idempotent
+
+3) Data consistency strategy
+- Postgres is the single source of truth.
+- Elasticsearch is derived from Postgres using events.
+- Search is eventually consistent: new/updated items might not appear in search immediately.
+
+4) Core flows (text diagram)
+
+WRITE FLOW (create/update item)
+Client
+  -> API (validate + RBAC)
+      -> Postgres (commit item + tags)
+      -> Kafka (publish ItemCreated/ItemUpdated event)
+          -> Audit consumer (store audit row)
+          -> Indexer consumer (fetch from Postgres -> upsert ES)
+
+READ FLOW (normal detail)
+Client
+  -> API
+      -> Postgres (read item details, enforce RBAC)
+
+READ FLOW (search)
+Client
+  -> API
+      -> Elasticsearch (search/filter)
+      -> (optional) Postgres (fetch details if needed)
+
+5) Eventual consistency UX guidance
+- After write, UI can show the item immediately (from Postgres response).
+- Search results may lag by seconds; UI may show “Indexing…” when relevant.
+
+6) Planned evolution
+- MVP first: API + Postgres + Auth/RBAC + TDD
+- Then Kafka events
+- Then audit consumer
+- Then indexer + search endpoint
+- Then worker jobs
+- Then cloud-native readiness + k8s + GCP deployment

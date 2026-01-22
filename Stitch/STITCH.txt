@@ -1,0 +1,171 @@
+FILENAME: STICH_UI_PROMPT.txt
+
+You are Stich, a UI/UX design generator.
+
+Design a modern, professional web application UI for a product called “Atlas” — an event-driven knowledge platform (like a lightweight Notion + resource manager). The app focuses on Collections and Items (notes/resources/links), tagging, search, background job status, and audit trail. The UI should look like a real SaaS product: clean, minimal, modern, and slightly “enterprise” (credible for B2B). Provide desktop-first designs and include responsive behavior notes.
+
+STYLE / VISUAL DIRECTION
+- Clean SaaS aesthetic, modern typography, lots of whitespace, subtle shadows.
+- Light theme by default, optional dark theme palette guidance.
+- Use a neutral base (white/gray) with one accent color for primary actions.
+- Use consistent spacing and a clear layout grid.
+- Components: cards, tables, empty states, skeleton loaders, toast notifications.
+- Use icons for navigation (simple outline style).
+- Accessibility: good contrast, large clickable areas, clear focus states.
+
+INFORMATION ARCHITECTURE (NAVIGATION)
+Left sidebar navigation with:
+- Atlas logo + product name
+- Collections (primary)
+- Search
+- Jobs
+- Audit
+- Settings
+- (Optional) Admin section if user is owner
+
+Top bar:
+- Breadcrumb (Collection > Item)
+- Search bar (global quick search)
+- Create button (New Item)
+- User menu (profile/logout)
+
+CORE PAGES TO DESIGN
+1) Authentication
+   A) Login page
+   - Email + password fields
+   - “Sign in” primary button
+   - Link to Register
+   - Error state for invalid credentials
+   B) Register page
+   - Email + password + confirm password
+   - “Create account”
+   - Success message and redirect
+
+2) Collections Dashboard (Home)
+   - List of collections user belongs to
+   - “Create collection” CTA
+   - Collection cards: name, role badge (Owner/Editor/Viewer), last updated, item count
+   - Search/filter collections by name
+   - Empty state: “No collections yet” + CTA
+
+3) Collection Detail Page
+   - Header: collection name, role badge, actions menu
+   - Tabs:
+     - Items
+     - Members (RBAC)
+     - Settings (optional)
+   A) Items tab
+   - Table/list view of items with columns:
+     - Title
+     - Tags
+     - Updated at
+     - Status badge (Indexed / Indexing / Failed indexing) [optional]
+   - Filters panel:
+     - tag multi-select
+     - date range
+     - sort dropdown (updated, created)
+   - “New item” button
+   - Bulk actions (optional): delete, add tag
+   - Empty state: “No items” + CTA
+   B) Members tab (RBAC management)
+   - Table: member email, role dropdown, added date
+   - Invite member modal:
+     - email input
+     - role select (viewer/editor/owner if allowed)
+     - invite button
+   - Permission hints:
+     - viewer cannot edit
+     - editor can create/edit items
+     - owner manages roles/settings
+
+4) Item Detail / Editor Page
+   - Two modes: View and Edit
+   - Fields:
+     - Title
+     - Tags editor (add/remove)
+     - Content editor (markdown-like or rich text simple)
+     - Source URL field (optional)
+     - Metadata panel (if source_url exists): title/description fetched by enrichment job
+   - Actions:
+     - Save
+     - Cancel
+     - Delete (confirm modal)
+   - Show audit summary preview: “Last edited by X at time”
+   - If indexing is eventual, show subtle “Indexing…” indicator after save
+
+5) Search Page (Elasticsearch-backed)
+   - Global search input (query)
+   - Filters:
+     - collection selector (All / specific collection)
+     - tags multi-select
+     - date range
+   - Results list:
+     - title
+     - snippet highlight
+     - tags
+     - collection name
+     - updated date
+   - Pagination/infinite scroll pattern
+   - No results state with tips
+
+6) Jobs Page (Background processing)
+   - List of jobs with filters:
+     - status (Queued/Running/Succeeded/Failed)
+     - type (ENRICH_URL, REINDEX_ITEM, REINDEX_COLLECTION)
+   - Job row: type, target item/collection, status badge, attempts, created time
+   - Job detail drawer/modal:
+     - payload preview
+     - last_error (if failed)
+     - timestamps
+   - UX patterns:
+     - auto-refresh indicator
+     - retry action (optional, if allowed)
+
+7) Audit Page (Event stream history)
+   - Filters:
+     - entity type (Item/Collection/Membership/Job)
+     - entity id (optional)
+     - user (actor)
+     - date range
+   - Table view:
+     - time
+     - event type
+     - actor
+     - entity (clickable)
+     - summary
+   - Audit detail drawer:
+     - full event payload shown in a pretty JSON viewer
+   - Provide “download/export” button placeholder (optional)
+
+8) Settings Page
+   - Profile: email, password change (optional)
+   - Preferences: theme toggle, timezone (optional)
+   - API tokens (optional future section placeholder)
+
+COMPONENTS TO INCLUDE (DESIGN SYSTEM)
+- Buttons: primary/secondary/destructive
+- Inputs: text, password, search, multi-select tags
+- Badges: roles + statuses
+- Tables: sortable columns
+- Cards: collections
+- Modals: create collection, invite member, confirm delete
+- Drawers: job detail, audit detail
+- Toast notifications: success/error
+- Skeleton loaders for list pages
+
+RESPONSIVE BEHAVIOR
+- Sidebar collapses into a hamburger menu on smaller screens
+- Tables become stacked cards on mobile
+- Keep primary actions accessible (Create Item, Search)
+
+COPY / TONE
+- Professional, concise microcopy
+- Examples:
+  - “Create collection”
+  - “Invite member”
+  - “No items yet — create your first item”
+  - “Indexing in progress”
+  - “Job failed — view details”
+
+DELIVERABLE
+Produce high-fidelity UI screens for all pages above, plus a consistent component library / style guide that the frontend can implement in React.

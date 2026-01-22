@@ -1,0 +1,43 @@
+ATLAS — SECURITY NOTES (Baseline)
+
+1) Authentication (MVP)
+- JWT-based auth:
+  - Register creates user with hashed password
+  - Login returns access token (JWT)
+  - Auth middleware extracts and validates token
+
+2) Authorization (RBAC)
+Roles per collection:
+- owner: full control (members + settings + items)
+- editor: create/update/delete items
+- viewer: read-only
+
+Rules:
+- Only members can access a collection’s items/tags/search
+- Only owner can manage memberships (recommended baseline)
+- Only owner/editor can create/update/delete items
+
+3) Input validation
+- Use strict request schemas (Pydantic)
+- Validate tag names, URL format, max lengths
+- Reject oversized payloads (later: request size limits)
+
+4) Secrets handling
+- No secrets in repo
+- Use env vars locally
+- Later on GCP: Secret Manager + Workload Identity recommended
+
+5) Audit trail (security/compliance)
+- All domain events stored immutably in audit_events
+- Supports “who did what when” queries
+
+6) Rate limiting and abuse protection (later)
+- Token bucket per user/IP (Redis)
+- Login attempts throttling
+- Request size limits
+
+7) Future security upgrades
+- Switch auth to OIDC/Keycloak (optional)
+- Add refresh tokens
+- Add security headers (if serving UI from backend)
+- Add dependency scanning + secrets scanning in CI
