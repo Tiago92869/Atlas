@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:17
+    container_name: atlas_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: trDp6gJ5JezhL8zel4f6J0hn6 
+      POSTGRES_DB: atlas_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+    driver: local
