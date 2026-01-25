@@ -129,7 +129,6 @@ It includes authentication, ticket lifecycle management, comments, auditing, not
 ## Data model (DER / ERD)
 
 ERD diagram file:
-- `docs/der.png`
 
 ![DER](docs/der.png)
 
