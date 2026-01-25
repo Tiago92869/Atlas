@@ -145,39 +145,27 @@ ERD diagram file:
 
 Login
 ![Login](docs/figma/Login.png)
-- `docs/figma/Login.png`
 
 Dashboard
 ![Dashboard](docs/figma/Dashboard.png)
-- `docs/figma/Dashboard.png`
 
 Ticket
 ![NewTicket](docs/figma/NewTicket.png)
 ![SearchTickets](docs/figma/SearchTickets.png)
 ![TicketDetail](docs/figma/TicketDetail.png)
 ![TicketsPage](docs/figma/TicketsPage.png)
-- `docs/figma/NewTicket.png`
-- `docs/figma/SearchTickets.png`
-- `docs/figma/TicketDetail.png`
-- `docs/figma/TicketsPage.png`
 
 Knowledge Base
 ![KnowledgeBaseMenu](docs/figma/KnowledgeBaseMenu.png)
 ![KnowledgeBaseCreate](docs/figma/KnowledgeBaseCreate.png)
-- `docs/figma/KnowledgeBaseMenu.png`
-- `docs/figma/KnowledgeBaseCreate.png`
 
 Notifications
 ![NotificationPreview](docs/figma/NotificationPreview.png`)
 ![NotificationsPage](docs/figma/NotificationsPage.png)
 ![NotificationDetails](docs/figma/NotificationDetails.png)
-- `docs/figma/NotificationPreview.png`
-- `docs/figma/NotificationsPage.png`
-- `docs/figma/NotificationDetails.png`
 
 Profile
 ![EditProfile](docs/figma/EditProfile.png)
-- `docs/figma/EditProfile.png`
 
 ---
 
