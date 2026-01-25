@@ -1,131 +1,257 @@
-# Atlas — Event-Driven Knowledge Platform (Python/FastAPI + Postgres + Kafka + Elasticsearch)
+# Smart Support Inbox
 
-## Motivation (why this project exists)
-Atlas is a portfolio project built to demonstrate “real-world backend engineering” beyond simple CRUD:
-- Clean API design (validation, pagination, consistent errors)
-- Security fundamentals (JWT auth + RBAC)
-- Event-driven architecture (Kafka domain events)
-- Search at scale (Elasticsearch read-model + eventual consistency)
-- Reliability patterns (idempotency, retries, background jobs)
-- Strong engineering discipline (TDD, tests, documentation)
-- Cloud-native path (Docker Compose → local Kubernetes → GCP GKE Autopilot + Cloud SQL)
-
-The goal is to have a project that looks and feels like a production system: multiple components, clear boundaries, and a staged path to cloud deployment.
+A lightweight helpdesk / support-ticket web app built to practice **Django (backend)**, **React (frontend)**, and **DevSecOps**, with **PostgreSQL** as the source of truth, **Elasticsearch** for full-text search, and **Kafka** for event-driven features (search indexing + notifications).
 
 ---
 
-## UI Mockups
-
-<table>
-  <tr>
-    <td><img src="docs/images/atlas-auth-login.png" alt="Login" width="420"></td>
-    <td><img src="docs/images/collections-dashboard.png" alt="Collections Dashboard" width="420"></td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/collection-items-tab.png" alt="Collection Detail - Items" width="420"></td>
-    <td><img src="docs/images/collection-members-rbac.png" alt="Collection Detail - Members & RBAC" width="420"></td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/item-editor-metadata.png" alt="Item Editor & Metadata" width="420"></td>
-    <td><img src="docs/images/global-search.png" alt="Global Search" width="420"></td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/background-jobs-monitor.png" alt="Background Jobs Monitor" width="420"></td>
-    <td><img src="docs/images/audit-trail-event-log.png" alt="Audit Trail & Event Log" width="420"></td>
-  </tr>
-</table>
+## Table of contents
+1. [Overview](#overview)  
+2. [Features](#features)  
+3. [Roles & permissions](#roles--permissions)  
+4. [Use cases](#use-cases)  
+5. [Architecture](#architecture)  
+6. [Data model (DER / ERD)](#data-model-der--erd)  
+7. [UI mocks](#ui-mocks)  
+8. [API overview](#api-overview)  
+9. [Local setup](#local-setup)  
+10. [Project structure](#project-structure)  
+11. [DevSecOps goals](#devsecops-goals)  
+12. [Roadmap](#roadmap)  
+13. [License](#license)
 
 ---
 
-## What the product does (user view)
-Atlas lets users:
-- Create “Collections” (like folders/workspaces)
-- Add “Items” (notes/resources/links) inside collections
-- Tag items and later search across items efficiently
-- Share collections with other users using role-based access control
-- Trigger background processing (e.g., enrich a link with metadata)
-- View an audit trail of changes (who changed what and when)
+## Overview
+
+Smart Support Inbox is a “Zendesk-lite” app where requesters create tickets and support agents manage them.  
+It includes authentication, ticket lifecycle management, comments, auditing, notifications, and search.
 
 ---
 
-## Components (what we build)
-### 1) API Service (FastAPI)
-- Handles REST endpoints
-- Implements JWT authentication
-- Enforces RBAC (owner/editor/viewer) for each collection
-- Writes all authoritative data to Postgres
-- Publishes domain events to Kafka after writes (ItemCreated, ItemUpdated, etc.)
-- Exposes OpenAPI docs (/docs)
+## Features
 
-### 2) Postgres (Source of Truth)
-- Stores users, collections, memberships, items, tags, job status, and audit events
-- Single authoritative database; other systems (Elasticsearch) are derived read models
-
-### 3) Kafka (Event Bus)
-- Transports domain events emitted by API
-- Enables decoupled consumers:
-  - Audit consumer (writes audit trail)
-  - Indexer consumer (updates Elasticsearch)
-  - Worker (optional triggers)
-
-### 4) Audit Consumer (Kafka → Postgres)
-- Consumes all domain events
-- Stores immutable audit records in Postgres
-- Supports audit queries (by user, entity, time window)
-
-### 5) Indexer Consumer (Kafka → Elasticsearch)
-- Consumes item-related events
-- Fetches current item state from Postgres
-- Upserts documents into Elasticsearch index
-- Powers the search endpoint
-
-### 6) Elasticsearch (Search Read-Model)
-- Stores indexed documents for Items only
-- Used for full-text search + filters + sorting
-- Eventually consistent with Postgres (indexing delay is expected)
-
-### 7) Worker (Background Jobs)
-- Executes async tasks such as URL metadata enrichment and reindex requests
-- Writes results back to Postgres (job status and item metadata)
-- Uses retries and idempotency
+- Authentication (login/logout + role-based access)
+- Ticket management (create, assign, update status/priority/category/tags)
+- Comments on tickets
+- Notifications (assignment, status updates, new comments)
+- Audit trail (who did what, when)
+- Search (Elasticsearch) across ticket content + comments
+- Event-driven processing (Kafka) for indexing + notifications
 
 ---
 
-## Key design choices
-### Postgres as Source of Truth + Elasticsearch as Read Model
-- Writes go to Postgres only
-- Elasticsearch is updated asynchronously via Kafka consumers
-- This keeps correctness simple and search fast
+## Roles & permissions
 
-### Eventual consistency (expected)
-- After creating/updating an item, it may take a short time to appear in search
-- UI should handle this gracefully (e.g., “Indexing…” state)
+### REQUESTER
+**Can:**
+- Create tickets
+- View only their own tickets
+- Comment on their own tickets
+- Receive notifications about their tickets
 
-### TDD-first
-- Unit tests for domain/service logic
-- Integration tests for API + DB
-- Consumers tested for idempotency and replay safety
+**Cannot:**
+- Assign tickets
+- Manage users/roles
+- View global audit logs
+
+### AGENT
+**Can:**
+- View assigned tickets + unassigned tickets
+- Assign tickets (to self or another agent)
+- Update ticket status/priority/category/tags
+- Comment on tickets they can access
+- Receive notifications (assigned ticket, new comment, status updates)
+
+**Cannot:**
+- Manage users/roles
+- View global audit logs  
+  *(Optional: can view ticket-level activity.)*
+
+### ADMIN
+**Can:**
+- Everything agents can do
+- Manage users and roles
+- View global audit logs
+- View and manage all tickets
+- Manage all users and system settings *(optional)*
 
 ---
 
-## Technologies
-- Backend: Python + FastAPI
-- DB: Postgres + Alembic migrations
-- Messaging: Kafka
-- Search: Elasticsearch
-- Testing: pytest
-- Containerization: Docker Compose
-- Later: Kubernetes (kind/minikube) and GCP (GKE Autopilot + Cloud SQL)
+## Use cases
+
+### Authentication
+- Log in
+- Log out
+- Fetch current user profile (role + identity)
+
+### Ticketing (core)
+- Create a ticket (Requester)
+- View ticket inbox  
+  - Requester: own tickets only  
+  - Agent/Admin: all tickets + filters
+- Assign / unassign ticket (Agent/Admin)
+- Change ticket status (Agent/Admin)
+- Add comments  
+  - Requester: own tickets  
+  - Agent/Admin: tickets they can access
+- Filter tickets by: status, priority, category, assignee, tags
+- View ticket details including comments and activity
+
+### Search
+- Search tickets by text query
+- Filter search results (status, priority, category, tags)
+
+### Notifications
+- Get my notifications
+- Mark notification as read/unread
+- Mark all notifications as read
+
+### Auditing
+- View ticket activity timeline (per ticket)
+- Admin can view system-wide audit logs
 
 ---
 
-## Roadmap (high-level)
-- Milestone 1: MVP API (Auth + RBAC + Collections/Items + Postgres + tests)
-- Milestone 2: Kafka events on writes
-- Milestone 3: Audit consumer (Kafka → Postgres)
-- Milestone 4: Elasticsearch indexing + search endpoint
-- Milestone 5: Background jobs + worker + job status API
-- Milestone 6: Cloud-native readiness (health, logs, metrics, config)
-- Milestone 7: React frontend
-- Milestone 8: Local Kubernetes
-- Milestone 9: GCP deployment + DevSecOps pipeline
+## Architecture
+
+**React Frontend** → **Django REST API** → **PostgreSQL (system of record)**  
+**Django REST API** → **Kafka (events)**  
+**Kafka consumers (worker/indexer)** → **Elasticsearch (search index)**  
+**Kafka consumers (worker)** → **Notifications (stored in PostgreSQL)**
+
+**Key idea**
+- PostgreSQL is the “truth”
+- Kafka distributes changes as events
+- Elasticsearch powers full-text search
+
+---
+
+## Data model (DER / ERD)
+
+ERD diagram file:
+- `docs/der.png`
+
+![DER](docs/der.png)
+
+**Entities**
+- USER
+- TICKET *(includes tags as ENUM list)*
+- COMMENT
+- NOTIFICATION
+- AUDIT_LOG
+
+---
+
+## UI mocks
+
+Login
+- `docs/figma/Login.png`
+
+Dashboard
+- `docs/figma/Dashboard.png`
+
+Ticket
+- `docs/figma/NewTicket.png`
+- `docs/figma/SearchTickets.png`
+- `docs/figma/TicketDetail.png`
+- `docs/figma/TicketsPage.png`
+
+Knowledge Base
+- `docs/figma/KnowledgeBaseMenu.png`
+- `docs/figma/KnowledgeBaseCreate.png`
+
+Notifications
+- `docs/figma/NotificationPreview.png`
+- `docs/figma/NotificationsPage.png`
+- `docs/figma/NotificationDetails.png`
+
+Profile
+- `docs/figma/EditProfile.png`
+
+---
+
+## API overview
+
+### Auth
+- `POST /auth/login`
+- `POST /auth/logout`
+- `GET /auth/me`
+
+### Tickets
+- `GET /tickets`
+- `POST /tickets`
+- `GET /tickets/{id}`
+- `PATCH /tickets/{id}`
+
+### Comments
+- `GET /tickets/{id}/comments`
+- `POST /tickets/{id}/comments`
+
+### Search (Elasticsearch-backed)
+- `GET /search?q=...`
+
+### Notifications
+- `GET /notifications`
+- `GET /notifications/unread-count`
+- `PATCH /notifications/{id}` *(mark read/unread)*
+- `POST /notifications/mark-all-read`
+
+### Audit
+- `GET /tickets/{id}/activity`
+- `GET /audit` *(admin only)*
+
+---
+
+## Local setup
+
+This project runs locally using **Docker Compose**.
+
+**Services**
+- Backend: Django + DRF
+- Frontend: React
+- Postgres
+- Kafka
+- Elasticsearch
+
+Run:
+```bash
+docker compose up --build
+
+Open:
+
+Frontend: http://localhost:3000
+Backend API: http://localhost:8000
+
+## Project structure
+Example:
+
+/backend        # Django API
+/frontend       # React app
+/infra          # docker-compose, env templates, scripts
+/docs
+  der.png
+  /mocks
+
+## DevSecOps goals
+
+### CI pipeline
+- Lint + tests
+- Dependency scanning (Python + Node)
+
+### Security basics
+- CORS policy, auth hardening
+- Secrets via environment variables (no secrets in git)
+
+### Observability
+- Structured logs
+- Basic metrics *(optional)*
+
+---
+
+## Roadmap
+
+- **Phase 1:** Auth + Tickets + Comments (Postgres)
+- **Phase 2:** Search (Elasticsearch)
+- **Phase 3:** Kafka events + indexing worker
+- **Phase 4:** Notifications + audit timeline
+- **Phase 5:** CI + security checks + monitoring
