@@ -36,9 +36,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "django.contrib.postgres",
     "rest_framework",
     "users.apps.UsersConfig",
     "drf_spectacular",
+    "tickets",
     "students.apps.StudentsConfig",
 ]
 
